@@ -1,0 +1,9 @@
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Install') { steps { sh 'bash scripts/setup-python.sh' } }
+    stage('Test') { steps { sh 'bash scripts/test.sh' } }
+  }
+  post { always { junit allowEmptyResults: true, testResults: 'reports/pytest.xml' } }
+}

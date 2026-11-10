@@ -1,0 +1,15 @@
+pipeline {
+  agent { label 'killercoda' }
+  options { disableConcurrentBuilds() }
+  parameters { string(name: 'IMAGE_REPOSITORY', defaultValue: 'exam-flask', description: 'Local image repository, without a tag') }
+  environment { IMAGE = "${params.IMAGE_REPOSITORY}:${env.BUILD_NUMBER}" }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Test') { steps { sh 'bash scripts/setup-python.sh && bash scripts/test.sh' } }
+
+    stage('Build') { steps { sh 'docker build -t "$IMAGE" .' } }
+    stage('Load nodes') { steps { sh 'bash scripts/load-image.sh "$IMAGE"' } }
+    stage('Deploy') { steps { sh 'bash scripts/deploy.sh 4' } }
+  }
+  post { always { junit allowEmptyResults: true, testResults: 'reports/pytest.xml' } }
+}

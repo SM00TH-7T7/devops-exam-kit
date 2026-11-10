@@ -1,0 +1,132 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-metrics
+  namespace: exam-set-4
+spec:
+  clusterIP: None
+  selector:
+    app: flask
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: exam-set-4
+data:
+  prometheus.yml: "global:\n  scrape_interval: 5s\nscrape_configs:\n  - job_name:\
+    \ flask\n    dns_sd_configs:\n      - names: ['flask-metrics.exam-set-4.svc.cluster.local']\n\
+    \        type: A\n        port: 5000\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: exam-set-4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v3.2.1
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: config
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.retention.time=1h
+      volumes:
+      - name: config
+        configMap:
+          name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: exam-set-4
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - port: 9090
+    targetPort: 9090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: exam-set-4
+data:
+  datasource.yml: "apiVersion: 1\ndatasources:\n  - name: Prometheus\n    type: prometheus\n\
+    \    access: proxy\n    url: http://prometheus:9090\n    isDefault: true\n   \
+    \ editable: false\n"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: exam-set-4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:11.6.0
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: config
+          mountPath: /etc/grafana/provisioning/datasources/datasource.yml
+          subPath: datasource.yml
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: config
+        configMap:
+          name: grafana-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: exam-set-4
+spec:
+  selector:
+    app: grafana
+  ports:
+  - port: 3000
+    targetPort: 3000

@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+reports/
+.terraform/
+*.tfstate*
+*.tfplan
+crash.log
+.env
+secret.yaml
+set-5/generated/
+.jenkins-lab/

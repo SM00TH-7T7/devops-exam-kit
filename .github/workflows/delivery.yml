@@ -1,0 +1,18 @@
+name: Flask delivery (manual lab)
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  deliver:
+    # Register your trusted lab agent with BOTH labels; hosted runners cannot reach the lab cluster.
+    runs-on: [self-hosted, killercoda]
+    env:
+      IMAGE: exam-flask:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/setup-python.sh
+      - run: bash scripts/test.sh
+      - run: bash scripts/scan.sh
+      - run: docker build -t "$IMAGE" .
+      - run: bash scripts/load-image.sh "$IMAGE"
+      - run: bash scripts/deploy.sh 6
